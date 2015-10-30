@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func parralell(jobs int, fn func(j int)) {
+func parallel(jobs int, fn func(j int)) {
 	for job := 1; job <= jobs; job++ {
 		log.Println("Starting job", job)
 		go fn(job)
@@ -47,7 +47,7 @@ func main() {
 	// flag for close on done channel
 	doneClosed := false
 
-	parralell(jobs, func(job int) {
+	parallel(jobs, func(job int) {
 		defer gg.Done()
 		defer cleanup(job, msgs)
 		defer wg.Done()
