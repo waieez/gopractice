@@ -28,11 +28,11 @@ func cleanup(job int, msgs chan string) {
 }
 
 func main() {
-	var wg sync.WaitGroup
-	var gg sync.WaitGroup
+	var exitWaiter sync.WaitGroup
+	var logWaiter sync.WaitGroup
 	jobs := 100
-	wg.Add(jobs)
-	gg.Add(jobs)
+	exitWaiter.Add(jobs)
+	logWaiter.Add(jobs)
 
 	// pass messages between jobs
 	msgs := make(chan string, jobs*2) // hacky, requires some way of estimating the buffer
@@ -48,9 +48,9 @@ func main() {
 	doneClosed := false
 
 	parallel(jobs, func(job int) {
-		defer gg.Done()
+		defer logWaiter.Done()
 		defer cleanup(job, msgs)
-		defer wg.Done()
+		defer exitWaiter.Done()
 
 		select {
 		case errCh <- doStuff():
@@ -63,7 +63,7 @@ func main() {
 	// handles the case when all jobs finish before timeout
 	go func() {
 		log.Println("Blocking until all exits")
-		wg.Wait()
+		exitWaiter.Wait()
 		log.Println("All jobs exited, closing done channel")
 		if !doneClosed { // close only if not already closed
 			close(done)
@@ -97,7 +97,7 @@ func main() {
 		}
 	}()
 
-	gg.Wait() // Everything aside from the logger should have gracefully exited by this point
+	logWaiter.Wait() // Everything aside from the logger should have gracefully exited by this point
 
 	exit <- true // signal to logger to exit
 	log.Println("Cleanup complete, closing msgs channel")
